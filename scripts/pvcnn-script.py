@@ -215,13 +215,22 @@ class TrainingScript(object):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser('pvcnn script')
+    parser.add_argument('method', required=True, choices=['train', 'evaluate'])
+    args = parser.parse_args()
     PVCNN_PATH = osp.join(THISDIR, '../../pvcnn') # Or wherever you cloned it to
     if not osp.exists(PVCNN_PATH): raise RuntimeError('Make sure you cloned the pvcnn repository')
     sys.path.append(PVCNN_PATH)
     script = TrainingScript(debug=False) # Debug mode runs only a few events to check for bugs
+    if args.method == 'train':
+        script.train()
+    elif args.method == 'evaluate':
+        script.load_checkpoint = 'output/checkpoints/model_checkpoint_PVConvForHGCAL_2562244_9c8b11eb88_alexjschuy.best.pth.tar'
+        script.test()
     # Here's how to load a checkpoint:
     # script.load_checkpoint = 'training-Mar06-epoch-15-29/output/checkpoints/model_checkpoint_PVConvForHGCAL_2562244_9c8b11eb88_klijnsma_014.pth.tar'
-    script.train()
+    
 
 if __name__ == '__main__':
     main()
