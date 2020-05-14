@@ -217,7 +217,7 @@ class TrainingScript(object):
 def main():
     import argparse
     parser = argparse.ArgumentParser('pvcnn script')
-    parser.add_argument('method', required=True, choices=['train', 'evaluate'])
+    parser.add_argument('method', choices=['train', 'evaluate'])
     args = parser.parse_args()
     PVCNN_PATH = osp.join(THISDIR, '../../pvcnn') # Or wherever you cloned it to
     if not osp.exists(PVCNN_PATH): raise RuntimeError('Make sure you cloned the pvcnn repository')
