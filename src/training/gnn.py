@@ -216,6 +216,8 @@ class GNNTrainer(base):
 
 
         torch.cuda.empty_cache()
+
+        breakpoint()
         self.logger.debug(
             'loss %.5f cat effs %s',
             sum_loss / (i + 1), np.array_str((num/denm).cpu().numpy())
@@ -248,6 +250,27 @@ class GNNTrainer(base):
             )
         return summary
 
+    @torch.no_grad()
+    def predict(self, data_loader):
+        """Make predictions"""
+        self.model.zero_grad()
+        torch.cuda.empty_cache()
+        self.model.eval()
+        num_files = len(data_loader.dataset)
+        total = sum(len(d.x) for d in data_loader.dataset)
+        file_batch_size = data_loader.batch_size
+        predictions = torch.zeros(total)
+        t = tqdm.tqdm(enumerate(data_loader),total=int(math.ceil(num_files/file_batch_size)))
+        start = 0
+        for i, file_data in t:
+            file_input = file_data.to(self.device)
+            file_output = self.model(file_input)
+            _, file_pred = torch.max(file_output.data, 1)
+            end = start + len(file_pred)
+            predictions[start:end] = file_pred
+            start = end
+        predictions = predictions.cpu().data.numpy()
+        return predictions
 
 def _test():
     t = GNNTrainer(output_dir='./')
