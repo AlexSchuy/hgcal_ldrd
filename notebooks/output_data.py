@@ -7,7 +7,7 @@ import torch
 import matplotlib.pyplot as plt, cycler
 import matplotlib
 from torch_geometric.data import DataLoader
-
+import pandas as pd
 
 # %%
 HGCAL_LDRD_PATH = osp.abspath('../../hgcal_ldrd/src')
@@ -23,11 +23,7 @@ sys.path.append(HGCAL_SCRIPTS_PATH)
 # %%
 from datasets.hitgraphs import HitGraphDataset
 sys.path.append(PVCNN_PATH)
-
-
-# %%
 from scripts import pvcnn_script
-
 
 # %%
 script = pvcnn_script.TrainingScript(debug=False)
@@ -48,13 +44,13 @@ for i, d in enumerate(valid_dataset):
     one_file_subset = torch.utils.data.Subset(valid_dataset,[i])
     one_file_loader = DataLoader(one_file_subset, batch_size=1, shuffle=False)
     predictions = trainer.predict(one_file_loader)
-    input = one_file_subset[0].x.cpu().numpy()
-    output = np.zeros((input.shape[0], input.shape[1]+1))
-    output[:, :-1] = input
-    output[:, -1] = predictions
-    output_path = output_dir / f'data_{i}.npy'
-    np.save(output_path, output)
+    x = one_file_subset[0].x.cpu().numpy()
+    target = one_file_subset[0].y_nodes.cpu().numpy()
+    output = pd.DataFrame(data=x, columns=['x', 'y', 'z', 'E', 't'])
+    output['target'] = target
+    output['prediction'] = predictions
+    output_path = output_dir / f'data_{i}.pkl'
+    output.to_pickle(output_path)
 
 # %%
-
 
