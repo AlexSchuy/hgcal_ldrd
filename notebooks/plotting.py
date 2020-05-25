@@ -1,13 +1,23 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
-import os, sys, shutil, time, os.path as osp, logging, numpy as np
+import logging
+import os
+import os.path as osp
+import shutil
+import sys
+import time
 from pathlib import Path
-import matplotlib.pyplot as plt, cycler
-import matplotlib
-import tqdm
-import pandas as pd
 
+import cycler
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import tqdm
+# %%
+from sklearn.metrics import confusion_matrix
+from tqdm.notebook import tqdm
 
 # %%
 INPUT_PATH = Path('../../data/single_tau/output/best_epoch')
@@ -23,7 +33,7 @@ class Event():
         data = pd.read_pickle(f)
         X = data.loc[:, ['x', 'y', 'z', 'E', 't']]
         target = data.loc[:, 'target']
-        prediction = data.loc[:, 'prediction']
+        prediction = data.loc[:, 'prediction'].astype(int)
         return cls(
             X = X, target = target,
             prediction = prediction
@@ -110,10 +120,7 @@ for i_event, event in enumerate(EventFactory(files, max_events=100)):
 
 matplotlib.use(backend_) # Reset backend
 
-
 # %%
-from sklearn.metrics import confusion_matrix
-from tqdm.notebook import tqdm
 
 class PlotStatistics():
     def __init__(self, files):
@@ -121,36 +128,27 @@ class PlotStatistics():
         self.num_classes = 4
         # self.n_events = 100
         self.n_events = None
+        self.conf_mat = None
         
     def events(self):
         return EventFactory(self.files, self.n_events)
-                
-    def single_confusion_matrix(self, event):
-        conf_mat = confusion_matrix(
-            event.target.values, event.prediction.values,
-            labels = np.arange(self.num_classes),
-            # normalize = 'true'
-            )
-        # If there are zero events of a category, sklearn puts a zero
-        # on the diagonal. That screws up averaging.
-        # for i_cat in range(self.num_classes):
-        #     if conf_mat[i_cat][i_cat] == 0.0:
-        #         conf_mat[i_cat][i_cat] = 1.0
-        return conf_mat
     
     def average_confusion_matrix(self):
-        total_confusion_matrix = np.zeros((self.num_classes, self.num_classes))
-        for event in self.events():
-            total_confusion_matrix = np.add(
-                total_confusion_matrix,
-                self.single_confusion_matrix(event)
-                )
-        sums = total_confusion_matrix.sum(axis=0)
-        return total_confusion_matrix / sums
+        target = np.concatenate([e.target.values for e in self.events()])
+        prediction = np.concatenate([e.prediction.values for e in self.events()])
+        conf_mat = confusion_matrix(target, prediction, labels=np.arange(self.num_classes), normalize='true').transpose()
+        self.conf_mat = conf_mat
+        return conf_mat
+
+    def display_confusion_matrix(self):
+        np.set_printoptions(suppress=True, precision=4)
+        if self.conf_mat is None:
+            self.average_confusion_matrix()
+        print(self.conf_mat)
     
     def _energy_collection_perevent(self, event, i_cat):
-        pred_energy = event.X.loc[event.prediction == i_cat, 'E'].sum()
-        true_energy = event.X.loc[event.target == i_cat, 'E'].sum()
+        pred_energy = event.X.loc[(event.prediction == i_cat) & (event.X.loc[:, 'E'] >= 0.0), 'E'].sum()
+        true_energy = event.X.loc[(event.target == i_cat) & (event.X.loc[:, 'E'] >= 0.0), 'E'].sum()
         return pred_energy/true_energy if true_energy > 0. else -1
     
     def get_energy_collection(self):
@@ -191,10 +189,8 @@ print([sum(e.target.loc[e.target==i].shape[0] for e in EventFactory(files)) for 
 
 
 # %%
-conf_mat = plot.average_confusion_matrix()
+plot.display_confusion_matrix()
 
-# %%
-print(conf_mat)
 
 # %%
 # plot.n_events = 10
@@ -207,5 +203,36 @@ plot.plot_energy_collection_hist(energy_collection_per_cat, savefig='energycolle
 
 
 # %%
+summaries = np.load('../output/summaries.npz')
 
 
+
+# %%
+runs = {k: summaries[k] for k in summaries.keys()}
+
+
+# %%
+def plot_valid_loss():
+    fig, axs = plt.subplots(2, 2, figsize=(12,12))
+    
+    axs[0,0].plot(runs['epoch'], runs['valid_loss'], label='Validation loss')
+    axs[0,0].plot(runs['epoch'], runs['train_loss'], label='Training loss')
+    axs[0,0].set_xlabel('Epoch', fontsize=14)
+    axs[0,0].set_ylabel('Loss', fontsize=14)
+    axs[0,0].legend(fontsize=14)
+
+    axs[0,1].plot(runs['epoch'], runs['valid_acc'])
+    axs[0,1].set_xlabel('Epoch', fontsize=14)
+    axs[0,1].set_ylabel('Validation accuracy', fontsize=14)
+
+    axs[1,0].plot(runs['epoch'], runs['lr'])
+    axs[1,0].set_xlabel('Epoch', fontsize=14)
+    axs[1,0].set_ylabel('Learning rate', fontsize=14)
+
+    axs[1,1].plot(runs['epoch'], np.array(runs['train_time']) / 60.)
+    axs[1,1].set_xlabel('Epoch', fontsize=14)
+    axs[1,1].set_ylabel('Training time [min]', fontsize=14)
+
+plot_valid_loss()
+
+# %%
