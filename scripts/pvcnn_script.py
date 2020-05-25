@@ -69,7 +69,7 @@ class TrainingScript(object):
             logger.setLevel(logging.DEBUG)
             logging.getLogger('pvcnnlogger').setLevel(logging.DEBUG)
         else:
-            self.n_epochs = 15
+            self.n_epochs = 30
             self.dataset_path = osp.join(
                 THISDIR,
                 '../../data/single-tau'
@@ -204,6 +204,7 @@ class TrainingScript(object):
         trainer = self.get_trainer()
         train_summary = trainer.train(train_loader, self.n_epochs, valid_data_loader=valid_loader)
         logger.info(train_summary)
+        trainer.write_summaries()
 
     def test(self):
         full_dataset, train_dataset, valid_dataset = self.get_full_dataset()
@@ -224,6 +225,7 @@ def main():
     sys.path.append(PVCNN_PATH)
     script = TrainingScript(debug=False) # Debug mode runs only a few events to check for bugs
     if args.method == 'train':
+        script.load_checkpoint = 'output/checkpoints/model_checkpoint_PVConvForHGCAL_2562244_9c8b11eb88_alexjschuy.best.pth.tar'
         script.train()
     elif args.method == 'evaluate':
         script.load_checkpoint = 'output/checkpoints/model_checkpoint_PVConvForHGCAL_2562244_9c8b11eb88_alexjschuy.best.pth.tar'

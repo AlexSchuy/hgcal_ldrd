@@ -28,6 +28,8 @@ from scripts import pvcnn_script
 # %%
 script = pvcnn_script.TrainingScript(debug=False)
 
+# %%
+print(sys.path)
 
 # %%
 script.load_checkpoint = '../output/checkpoints/model_checkpoint_PVConvForHGCAL_2562244_9c8b11eb88_alexjschuy.best.pth.tar'
@@ -37,7 +39,7 @@ trainer = script.get_trainer()
 
 
 # %%
-output_dir = Path('../../data/single_tau/output')
+output_dir = Path('../../data/single_tau/output/best_epoch')
 if not output_dir.exists():
     output_dir.mkdir(parents=True)
 for i, d in enumerate(valid_dataset):

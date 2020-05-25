@@ -10,9 +10,11 @@ import pandas as pd
 
 
 # %%
-INPUT_PATH = Path('../../data/single_tau/output')
-files = [str(p) for p in INPUT_PATH.glob('data*.pkl')]
+INPUT_PATH = Path('../../data/single_tau/output/best_epoch')
+files = sorted([str(p) for p in INPUT_PATH.glob('data*.pkl')])
 
+# %%
+data = pd.read_pickle(files[93])
 
 # %%
 class Event():
@@ -94,14 +96,6 @@ class PlotEventDisplay():
         return self.plot_output(self.event.target, 'Truth', savefig)
 
 
-# %%
-for event in EventFactory(files):
-    plot = PlotEventDisplay(event)
-    break
-    
-plot.plot_prediction()
-plot.plot_truth()
-
 
 # %%
 if not osp.isdir('eventdisplays'): os.makedirs('eventdisplays')
@@ -133,7 +127,7 @@ class PlotStatistics():
                 
     def single_confusion_matrix(self, event):
         conf_mat = confusion_matrix(
-            event.target.values, event.output.values,
+            event.target.values, event.prediction.values,
             labels = np.arange(self.num_classes),
             # normalize = 'true'
             )
@@ -155,7 +149,7 @@ class PlotStatistics():
         return total_confusion_matrix / sums
     
     def _energy_collection_perevent(self, event, i_cat):
-        pred_energy = event.X.loc[event.output == i_cat, 'E'].sum()
+        pred_energy = event.X.loc[event.prediction == i_cat, 'E'].sum()
         true_energy = event.X.loc[event.target == i_cat, 'E'].sum()
         return pred_energy/true_energy if true_energy > 0. else -1
     
@@ -189,12 +183,18 @@ class PlotStatistics():
             
         if savefig: fig.savefig(savefig, bbox_inches='tight')
 
-plot = PlotStatistics(valid_loader)
+plot = PlotStatistics(files)
+
+# %%
+print([sum(e.prediction.loc[e.prediction==i].shape[0] for e in EventFactory(files)) for i in range(4)])
+print([sum(e.target.loc[e.target==i].shape[0] for e in EventFactory(files)) for i in range(4)])
 
 
 # %%
 conf_mat = plot.average_confusion_matrix()
 
+# %%
+print(conf_mat)
 
 # %%
 # plot.n_events = 10

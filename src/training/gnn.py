@@ -217,7 +217,6 @@ class GNNTrainer(base):
 
         torch.cuda.empty_cache()
 
-        breakpoint()
         self.logger.debug(
             'loss %.5f cat effs %s',
             sum_loss / (i + 1), np.array_str((num/denm).cpu().numpy())
