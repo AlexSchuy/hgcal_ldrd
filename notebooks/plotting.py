@@ -236,3 +236,9 @@ def plot_valid_loss():
 plot_valid_loss()
 
 # %%
+for i in range(4):
+    target = np.concatenate([e.target.values for e in EventFactory(files)])
+    
+    energy = np.concatenate([e.X.loc[e.target==i, 'E'].values for e in EventFactory(files)])
+    print(np.sum(energy < 0.0) / energy.shape[0])
+# %%
